@@ -1,0 +1,54 @@
+name: Build AFTSS CleanYourTV
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Download CleanYourTV
+        run: git clone https://github.com/Gathin23/cleanyourtv.git
+
+      - name: Build launcher
+        working-directory: cleanyourtv/launcher
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Download Home Watcher
+        run: git clone https://github.com/NikhilSiddhu/firetv-tvos.git
+
+      - name: Build Home Watcher
+        working-directory: firetv-tvos/home-watcher
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: AFTSS-CleanYourTV-APKs
+          path: |
+            cleanyourtv/launcher/app/build/outputs/apk/release/app-release.apk
+            firetv-tvos/home-watcher/app/build/outputs/apk/release/app-release.apk
