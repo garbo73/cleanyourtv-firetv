@@ -1,4 +1,4 @@
-name: Build AFTSS CleanYourTV
+name: Build AFTSS CleanYourTV and Home Watcher
 
 on:
   workflow_dispatch:
@@ -18,10 +18,11 @@ jobs:
           java-version: "17"
 
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install SDK packages
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        uses: android-actions/setup-android@v4
+        with:
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -29,7 +30,7 @@ jobs:
       - name: Download CleanYourTV
         run: git clone https://github.com/Gathin23/cleanyourtv.git
 
-      - name: Build launcher
+      - name: Build CleanYourTV
         working-directory: cleanyourtv/launcher
         run: |
           chmod +x gradlew
@@ -44,10 +45,19 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease
 
-      - name: Upload APKs
+      - name: Check and prepare APKs
+        run: |
+          mkdir -p dist
+          test -f cleanyourtv/launcher/app/build/outputs/apk/release/app-release.apk
+          test -f firetv-tvos/home-watcher/app/build/outputs/apk/release/app-release.apk
+          cp cleanyourtv/launcher/app/build/outputs/apk/release/app-release.apk dist/CleanYourTV.apk
+          cp firetv-tvos/home-watcher/app/build/outputs/apk/release/app-release.apk dist/HomeWatcher.apk
+          ls -lh dist/
+
+      - name: Publish both APKs
         uses: actions/upload-artifact@v4
         with:
           name: AFTSS-CleanYourTV-APKs
-          path: |
-            cleanyourtv/launcher/app/build/outputs/apk/release/app-release.apk
-            firetv-tvos/home-watcher/app/build/outputs/apk/release/app-release.apk
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 14
